@@ -1,19 +1,54 @@
+import { useState, useEffect } from "react";
 import churchHero from "@/assets/church-hero.jpg";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+
+interface EventConfig {
+  id: string;
+  event_date: string | null;
+  event_value: number | null;
+  payment_info: string | null;
+  banner_url: string | null;
+}
 
 export default function ChurchHeader() {
+  const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
+
+  useEffect(() => {
+    loadEventConfig();
+  }, []);
+
+  const loadEventConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('event_config')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      setEventConfig(data);
+    } catch (error) {
+      console.error('Error loading event config:', error);
+    }
+  };
+
   return (
     <div className="relative overflow-hidden bg-gradient-holy">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0">
         <img
-          src={churchHero}
-          alt="Interior da igreja com luz dourada"
-          className="w-full h-full object-cover opacity-20"
+          src={eventConfig?.banner_url || churchHero}
+          alt={eventConfig?.banner_url ? "Banner do evento" : "Interior da igreja com luz dourada"}
+          className="w-full h-full object-cover opacity-80"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/50 to-background/90" />
       </div>
       
       {/* Admin Button */}
@@ -45,18 +80,31 @@ export default function ChurchHeader() {
           
           <div className="w-24 h-1 bg-gradient-celestial mx-auto rounded-full" />
           
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Venha viver uma experiência transformadora de fé, comunhão e renovação espiritual
-          </p>
-          
-          <div className="bg-holy/50 backdrop-blur-sm rounded-2xl p-6 border border-border/20 max-w-lg mx-auto">
-            <h2 className="text-lg font-semibold text-celestial mb-2">
-              🗓️ Encontro Especial
-            </h2>
-            <p className="text-muted-foreground">
-              Um momento único para fortalecer sua jornada espiritual e conectar-se com nossa comunidade
-            </p>
-          </div>
+          {/* Show event banner full screen instead of default text */}
+          {eventConfig?.banner_url ? (
+            <div className="mt-8">
+              <img 
+                src={eventConfig.banner_url} 
+                alt="Banner do evento completo" 
+                className="w-full max-w-2xl mx-auto rounded-2xl shadow-2xl border border-border/20"
+              />
+            </div>
+          ) : (
+            <>
+              <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Venha viver uma experiência transformadora de fé, comunhão e renovação espiritual
+              </p>
+              
+              <div className="bg-holy/50 backdrop-blur-sm rounded-2xl p-6 border border-border/20 max-w-lg mx-auto">
+                <h2 className="text-lg font-semibold text-celestial mb-2">
+                  🗓️ Encontro Especial
+                </h2>
+                <p className="text-muted-foreground">
+                  Um momento único para fortalecer sua jornada espiritual e conectar-se com nossa comunidade
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
