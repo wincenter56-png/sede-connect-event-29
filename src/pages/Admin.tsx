@@ -42,6 +42,7 @@ export default function Admin() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isLoggedIn) {
@@ -236,6 +237,43 @@ export default function Admin() {
     }
   };
 
+  const handleBannerUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `banner-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('event-banners')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('event-banners')
+        .getPublicUrl(fileName);
+
+      setEventConfig(prev => ({ ...prev, banner_url: data.publicUrl }));
+
+      toast({
+        title: "Upload concluído!",
+        description: "Banner enviado com sucesso",
+      });
+    } catch (error) {
+      console.error('Error uploading banner:', error);
+      toast({
+        title: "Erro no upload",
+        description: "Erro ao enviar o banner",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/");
@@ -391,26 +429,47 @@ export default function Admin() {
                 <div className="space-y-2">
                   <Label htmlFor="banner_url" className="flex items-center gap-2">
                     <Image className="w-4 h-4" />
-                    URL do Banner
+                    Banner do Evento
                   </Label>
-                  <Input
-                    id="banner_url"
-                    type="url"
-                    value={eventConfig.banner_url}
-                    onChange={(e) => setEventConfig(prev => ({ ...prev, banner_url: e.target.value }))}
-                    className="border-border/50 focus:border-celestial/50"
-                    placeholder="https://example.com/banner.jpg"
-                  />
+                  <div className="space-y-3">
+                    <Input
+                      id="banner_file"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerUpload}
+                      className="border-border/50 focus:border-celestial/50"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      Ou insira a URL diretamente:
+                    </div>
+                    <Input
+                      id="banner_url"
+                      type="url"
+                      value={eventConfig.banner_url}
+                      onChange={(e) => setEventConfig(prev => ({ ...prev, banner_url: e.target.value }))}
+                      className="border-border/50 focus:border-celestial/50"
+                      placeholder="https://example.com/banner.jpg"
+                    />
+                    {eventConfig.banner_url && (
+                      <div className="mt-2">
+                        <img 
+                          src={eventConfig.banner_url} 
+                          alt="Preview do banner" 
+                          className="w-full max-w-md h-32 object-cover rounded-lg border"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
                   <Button
                     onClick={saveEventConfig}
-                    disabled={isLoading}
+                    disabled={isLoading || isUploading}
                     className="bg-gradient-divine hover:opacity-90 text-celestial-foreground"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    {isLoading ? "Salvando..." : "Salvar Configurações"}
+                    {isLoading ? "Salvando..." : isUploading ? "Enviando banner..." : "Salvar Configurações"}
                   </Button>
                   <Button
                     variant="outline"
