@@ -61,7 +61,7 @@ export default function Admin() {
       const { data, error } = await supabase
         .from('event_config')
         .select('*')
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
         throw error;

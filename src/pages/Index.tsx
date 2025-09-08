@@ -25,6 +25,8 @@ const Index = () => {
       const { data, error } = await supabase
         .from('event_config')
         .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
