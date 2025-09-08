@@ -1,4 +1,7 @@
 import churchHero from "@/assets/church-hero.jpg";
+import { Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export default function ChurchHeader() {
   return (
@@ -11,6 +14,19 @@ export default function ChurchHeader() {
           className="w-full h-full object-cover opacity-20"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/90" />
+      </div>
+      
+      {/* Admin Button */}
+      <div className="absolute top-4 right-4 z-10">
+        <Link to="/admin">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-card/80 backdrop-blur-sm hover:bg-card/90 border border-border/20"
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+        </Link>
       </div>
       
       {/* Content */}
