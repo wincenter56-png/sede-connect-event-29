@@ -12,7 +12,19 @@ interface FormData {
   receipt: File | null;
 }
 
-export default function RegistrationForm() {
+interface EventConfig {
+  id: string;
+  event_date: string | null;
+  event_value: number | null;
+  payment_info: string | null;
+  banner_url: string | null;
+}
+
+interface RegistrationFormProps {
+  eventConfig: EventConfig | null;
+}
+
+export default function RegistrationForm({ eventConfig }: RegistrationFormProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -55,7 +67,8 @@ export default function RegistrationForm() {
         `👤 Nome: ${formData.name}\n` +
         `📱 Telefone: ${formData.phone}\n\n` +
         `📎 *IMPORTANTE:* Anexe o comprovante de pagamento nesta conversa\n` +
-        `💳 Pagamento feito via PIX: taiseacordi@gmail.com\n\n` +
+        `💳 Pagamento feito via PIX: ${eventConfig?.payment_info || "taiseacordi@gmail.com"}\n` +
+        `💰 Valor: R$ ${eventConfig?.event_value?.toFixed(2).replace('.', ',') || 'Consultar'}\n\n` +
         `Que Deus abençoe sua participação! 🕊️`
       );
 
@@ -139,15 +152,22 @@ export default function RegistrationForm() {
               <CreditCard className="w-5 h-5 text-celestial" />
               <h3 className="font-semibold text-celestial">Informações de Pagamento</h3>
             </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Faça o pagamento via PIX para a chave:
-              </p>
-              <div className="bg-card/50 rounded-lg p-3 border border-border/30">
-                <p className="font-mono text-sm font-medium text-center text-celestial break-all">
-                  taiseacordi@gmail.com
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Faça o pagamento via PIX para a chave:
                 </p>
-              </div>
+                <div className="bg-card/50 rounded-lg p-3 border border-border/30">
+                  <p className="font-mono text-sm font-medium text-center text-celestial break-all">
+                    {eventConfig?.payment_info || "taiseacordi@gmail.com"}
+                  </p>
+                </div>
+                {eventConfig?.event_value && (
+                  <div className="bg-divine/10 rounded-lg p-3 border border-celestial/20">
+                    <p className="text-sm font-medium text-center text-celestial">
+                      Valor: R$ {eventConfig.event_value.toFixed(2).replace('.', ',')}
+                    </p>
+                  </div>
+                )}
               <p className="text-xs text-muted-foreground text-center">
                 Após o pagamento, anexe o comprovante no campo abaixo
               </p>

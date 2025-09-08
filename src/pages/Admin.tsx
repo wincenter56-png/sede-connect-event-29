@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, DollarSign, FileText, Image, Users, Save, LogOut, Home } from "lucide-react";
+import { Calendar, DollarSign, FileText, Image, Users, Save, LogOut, Home, Edit, Trash2, Plus } from "lucide-react";
 
 interface EventConfig {
   id?: string;
@@ -41,6 +41,7 @@ export default function Admin() {
   });
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isLoggedIn) {
@@ -126,6 +127,7 @@ export default function Admin() {
         setEventConfig(prev => ({ ...prev, id: data.id }));
       }
 
+      setIsEditing(false);
       toast({
         title: "Sucesso!",
         description: "Configurações do evento salvas com sucesso",
@@ -140,6 +142,53 @@ export default function Admin() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const deleteEventConfig = async () => {
+    if (!eventConfig.id) return;
+    
+    const confirmed = window.confirm("Tem certeza que deseja excluir a configuração do evento?");
+    if (!confirmed) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('event_config')
+        .delete()
+        .eq('id', eventConfig.id);
+
+      if (error) throw error;
+
+      setEventConfig({
+        event_date: "",
+        event_value: 0,
+        payment_info: "taiseacordi@gmail.com",
+        banner_url: "",
+      });
+
+      toast({
+        title: "Sucesso!",
+        description: "Configuração do evento excluída com sucesso",
+      });
+    } catch (error) {
+      console.error('Error deleting event config:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir configuração",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startEditing = () => {
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    loadEventConfig(); // Reset form data
   };
 
   const updateRegistrationStatus = async (id: string, status: string) => {
@@ -246,83 +295,199 @@ export default function Admin() {
         {/* Event Configuration */}
         <Card className="mb-8 shadow-xl border-0 bg-card/95 backdrop-blur">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <FileText className="w-5 h-5" />
-              Configurações do Evento
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xl">
+                <FileText className="w-5 h-5" />
+                Configurações do Evento
+              </div>
+              <div className="flex gap-2">
+                {eventConfig.id && !isEditing && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={startEditing}
+                      className="flex items-center gap-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={deleteEventConfig}
+                      className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Excluir
+                    </Button>
+                  </>
+                )}
+                {!eventConfig.id && !isEditing && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Criar Evento
+                  </Button>
+                )}
+              </div>
             </CardTitle>
             <CardDescription>
-              Configure os detalhes do evento
+              {isEditing ? "Edite os detalhes do evento" : "Visualize ou gerencie as configurações do evento"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="event_date" className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Data do Evento
-                </Label>
-                <Input
-                  id="event_date"
-                  type="datetime-local"
-                  value={eventConfig.event_date}
-                  onChange={(e) => setEventConfig(prev => ({ ...prev, event_date: e.target.value }))}
-                  className="border-border/50 focus:border-celestial/50"
-                />
+            {isEditing ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="event_date" className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Data do Evento
+                    </Label>
+                    <Input
+                      id="event_date"
+                      type="datetime-local"
+                      value={eventConfig.event_date}
+                      onChange={(e) => setEventConfig(prev => ({ ...prev, event_date: e.target.value }))}
+                      className="border-border/50 focus:border-celestial/50"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="event_value" className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      Valor do Evento (R$)
+                    </Label>
+                    <Input
+                      id="event_value"
+                      type="number"
+                      step="0.01"
+                      value={eventConfig.event_value}
+                      onChange={(e) => setEventConfig(prev => ({ ...prev, event_value: parseFloat(e.target.value) || 0 }))}
+                      className="border-border/50 focus:border-celestial/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payment_info" className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Informações de Pagamento
+                  </Label>
+                  <Textarea
+                    id="payment_info"
+                    value={eventConfig.payment_info}
+                    onChange={(e) => setEventConfig(prev => ({ ...prev, payment_info: e.target.value }))}
+                    className="border-border/50 focus:border-celestial/50"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="banner_url" className="flex items-center gap-2">
+                    <Image className="w-4 h-4" />
+                    URL do Banner
+                  </Label>
+                  <Input
+                    id="banner_url"
+                    type="url"
+                    value={eventConfig.banner_url}
+                    onChange={(e) => setEventConfig(prev => ({ ...prev, banner_url: e.target.value }))}
+                    className="border-border/50 focus:border-celestial/50"
+                    placeholder="https://example.com/banner.jpg"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={saveEventConfig}
+                    disabled={isLoading}
+                    className="bg-gradient-divine hover:opacity-90 text-celestial-foreground"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {isLoading ? "Salvando..." : "Salvar Configurações"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={cancelEditing}
+                    disabled={isLoading}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                {eventConfig.id ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          Data do Evento
+                        </Label>
+                        <div className="p-3 bg-muted/50 rounded-md">
+                          {eventConfig.event_date ? 
+                            new Date(eventConfig.event_date).toLocaleDateString('pt-BR', {
+                              day: '2-digit',
+                              month: 'long',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : 
+                            "Não definida"
+                          }
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" />
+                          Valor do Evento
+                        </Label>
+                        <div className="p-3 bg-muted/50 rounded-md">
+                          {eventConfig.event_value ? 
+                            `R$ ${eventConfig.event_value.toFixed(2).replace('.', ',')}` : 
+                            "Não definido"
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Informações de Pagamento
+                      </Label>
+                      <div className="p-3 bg-muted/50 rounded-md">
+                        {eventConfig.payment_info || "Não definidas"}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Image className="w-4 h-4" />
+                        URL do Banner
+                      </Label>
+                      <div className="p-3 bg-muted/50 rounded-md break-all">
+                        {eventConfig.banner_url || "Não definida"}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhuma configuração de evento encontrada</p>
+                    <p className="text-sm">Clique em "Criar Evento" para começar</p>
+                  </div>
+                )}
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="event_value" className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
-                  Valor do Evento (R$)
-                </Label>
-                <Input
-                  id="event_value"
-                  type="number"
-                  step="0.01"
-                  value={eventConfig.event_value}
-                  onChange={(e) => setEventConfig(prev => ({ ...prev, event_value: parseFloat(e.target.value) || 0 }))}
-                  className="border-border/50 focus:border-celestial/50"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="payment_info" className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Informações de Pagamento
-              </Label>
-              <Textarea
-                id="payment_info"
-                value={eventConfig.payment_info}
-                onChange={(e) => setEventConfig(prev => ({ ...prev, payment_info: e.target.value }))}
-                className="border-border/50 focus:border-celestial/50"
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="banner_url" className="flex items-center gap-2">
-                <Image className="w-4 h-4" />
-                URL do Banner
-              </Label>
-              <Input
-                id="banner_url"
-                type="url"
-                value={eventConfig.banner_url}
-                onChange={(e) => setEventConfig(prev => ({ ...prev, banner_url: e.target.value }))}
-                className="border-border/50 focus:border-celestial/50"
-                placeholder="https://example.com/banner.jpg"
-              />
-            </div>
-
-            <Button
-              onClick={saveEventConfig}
-              disabled={isLoading}
-              className="w-full md:w-auto bg-gradient-divine hover:opacity-90 text-celestial-foreground"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {isLoading ? "Salvando..." : "Salvar Configurações"}
-            </Button>
+            )}
           </CardContent>
         </Card>
 
