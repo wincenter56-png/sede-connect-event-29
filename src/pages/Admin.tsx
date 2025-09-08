@@ -7,8 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, DollarSign, FileText, Image, Users, Save } from "lucide-react";
+import { Calendar, DollarSign, FileText, Image, Users, Save, LogOut, Home } from "lucide-react";
 
 interface EventConfig {
   id?: string;
@@ -29,6 +31,8 @@ interface Registration {
 
 export default function Admin() {
   const { toast } = useToast();
+  const { isLoggedIn, isLoading: authLoading, logout } = useAuth();
+  const navigate = useNavigate();
   const [eventConfig, setEventConfig] = useState<EventConfig>({
     event_date: "",
     event_value: 0,
@@ -39,9 +43,16 @@ export default function Admin() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    loadEventConfig();
-    loadRegistrations();
-  }, []);
+    if (!authLoading && !isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+    
+    if (isLoggedIn) {
+      loadEventConfig();
+      loadRegistrations();
+    }
+  }, [isLoggedIn, authLoading, navigate]);
 
   const loadEventConfig = async () => {
     try {
@@ -176,16 +187,60 @@ export default function Admin() {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+    toast({
+      title: "Logout realizado",
+      description: "Você foi desconectado com sucesso",
+    });
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-holy flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-celestial mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return null; // Redirecionamento será feito pelo useEffect
+  }
+
   return (
     <div className="min-h-screen bg-gradient-holy p-4">
       <div className="container mx-auto max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Painel Administrativo
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie as configurações do evento e visualize as inscrições
-          </p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Painel Administrativo
+            </h1>
+            <p className="text-muted-foreground">
+              Gerencie as configurações do evento e visualize as inscrições
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2"
+            >
+              <Home className="w-4 h-4" />
+              Início
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
         </div>
 
         {/* Event Configuration */}

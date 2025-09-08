@@ -18,11 +18,12 @@ export default function ChurchHeader() {
       
       {/* Admin Button */}
       <div className="absolute top-4 right-4 z-10">
-        <Link to="/admin">
+        <Link to="/login">
           <Button
             variant="ghost"
             size="icon"
             className="bg-card/80 backdrop-blur-sm hover:bg-card/90 border border-border/20"
+            title="Acesso Administrativo"
           >
             <Settings className="w-5 h-5" />
           </Button>
