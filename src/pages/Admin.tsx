@@ -531,10 +531,21 @@ export default function Admin() {
                     <div className="space-y-2">
                       <Label className="flex items-center gap-2">
                         <Image className="w-4 h-4" />
-                        URL do Banner
+                        Banner do Evento
                       </Label>
-                      <div className="p-3 bg-muted/50 rounded-md break-all">
-                        {eventConfig.banner_url || "Não definida"}
+                      <div className="space-y-3">
+                        <div className="p-3 bg-muted/50 rounded-md break-all text-sm">
+                          {eventConfig.banner_url || "Nenhum banner configurado"}
+                        </div>
+                        {eventConfig.banner_url && (
+                          <div className="mt-2">
+                            <img 
+                              src={eventConfig.banner_url} 
+                              alt="Banner do evento" 
+                              className="w-full max-w-md h-48 object-cover rounded-lg border shadow-md"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </>
